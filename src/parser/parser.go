@@ -2,7 +2,6 @@ package parser
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/singlaanish56/Compiler-in-go/ast"
 	"github.com/singlaanish56/Compiler-in-go/lexer"
@@ -31,11 +30,22 @@ func New(lexer *lexer.Lexer) *Parser{
 	p.nextToken()//sets the next token
 
 	p.prefixParserMap = make(map[token.TokenType]prefixParseFn)
+	p.infixParserMap = make(map[token.TokenType]infixParseFn)
 	p.addPrefix(token.VARIABLE, p.parseVariable)
 	p.addPrefix(token.NUMBER, p.parseNumber)
+	p.addPrefix(token.STRING, p.parseStringExpression)
+
+	p.addPrefix(token.MINUS, p.parsePrefixExpression)
 	p.addPrefix(token.PLUS, p.parsePrefixExpression)
+	p.addPrefix(token.EXCLAMATION, p.parsePrefixExpression)
+
+	p.addPrefix(token.TRUE, p.parseBooleanExpression)
+	p.addPrefix(token.FALSE, p.parseBooleanExpression)
+
 
 	p.addInfix(token.PLUS, p.parseInfixExpression)
+	p.addInfix(token.MINUS, p.parseInfixExpression)
+
 	return p
 }
 
@@ -46,14 +56,9 @@ func (p *Parser) ParserProgram() *ast.AstRootNode{
 		if stmt != nil{
 			rootNode.Statements = append(rootNode.Statements, stmt)
 		}
-
 		p.nextToken()
 	}
-
-}
-
-func (p *Parser) Errors() []error{
-	return p.errors
+	return rootNode
 }
 
 func (p* Parser) parseStatement() ast.Statement{
@@ -63,7 +68,7 @@ func (p* Parser) parseStatement() ast.Statement{
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
-		return nil
+		return p.parseExpressionStatement()
 	}
 }
  
@@ -104,6 +109,15 @@ func (p *Parser) parseReturnStatement() ast.Statement{
 	return returnstmt
 }
 
+func (p *Parser) parseExpressionStatement() ast.Statement{
+	st := &ast.ExpressionStatement{Token: p.currToken}
+	st.Expression = p.parseExpression(LOWEST)
+	if p.peekTokenIs(token.SEMICOLON){
+		p.nextToken()
+	}
+	return st
+}
+
 func (p *Parser) parseExpression(precendence int) ast.Expression{
 	 prefixFn := p.prefixParserMap[p.currToken.Type]
 	 if prefixFn == nil{
@@ -126,119 +140,5 @@ func (p *Parser) parseExpression(precendence int) ast.Expression{
 
 }
 
-func (p *Parser) parseVariable() ast.Expression{
-	return &ast.Variable{Token: p.currToken, Value: p.currToken.Identifier}
-}
-
-func (p *Parser) parseNumber() ast.Expression{
-	integerLiteral := &ast.IntegerLiteral{Token: p.currToken}
-
-	val, err := strconv.ParseInt(p.currToken.Identifier, 0 , 64)
-	if err != nil{
-		p.errors = append(p.errors, fmt.Errorf("could not parse %s as integer", p.currToken.Identifier))
-		return nil
-	}
-
-	integerLiteral.Value = val
-	return integerLiteral
-}
-
-func (p *Parser) parsePrefixExpression() ast.Expression{
-	prefixExpression := &ast.PrefixExpression{Token: p.currToken, Operator: p.currToken.Identifier}
-	p.nextToken()
-	prefixExpression.Right = p.parseExpression(PREFIX)
-
-	return prefixExpression
-}
 
 
-func (p *Parser) parseInfixExpression(leftExpression ast.Expression) ast.Expression{
-	exp := &ast.InfixExpression{
-		Token: p.currToken,
-		Operator: p.currToken.Identifier,
-		Left: leftExpression,
-	}
-
-	precendence := p.currentPrecedence()
-	p.nextToken()
-	exp.Right = p.parseExpression(precendence)
-	return exp
-}
-
-func (p *Parser) nextToken(){
-	p.currToken = p.peekToken
-	p.peekToken = p.lexer.NextToken()
-}
-
-func (p *Parser) checkPeek(tokenType token.TokenType) bool{
-	if p.peekTokenIs(tokenType){
-		p.nextToken()
-		return true
-	}
-	
-	p.peekError(tokenType)
-	return false
-}
-
-func (p *Parser) peekTokenIs(tokenType token.TokenType) bool{
-	return p.peekToken.Type == tokenType
-}
-
-func (p *Parser) peekError(tokenType token.TokenType){
-	err := fmt.Errorf("expected the next token to be %s, got %s", tokenType, p.peekToken.Type)
-	p.errors = append(p.errors, err)
-}
-
-func (p *Parser) currTokenIs(tokenType token.TokenType) bool{
-	return p.currToken.Type == tokenType
-}
-
-func (p *Parser) addPrefix(tokenType token.TokenType, fn prefixParseFn){
-	if _, exists := p.prefixParserMap[tokenType]; exists{
-		err := fmt.Errorf("prefix function already exists for token type %s", tokenType)
-		p.errors = append(p.errors, err)
-		return
-	}
-
-	p.prefixParserMap[tokenType] = fn
-}
-
-func (p *Parser) addInfix(tokenType token.TokenType, fn infixParseFn){
-	if _, exists := p.infixParserMap[tokenType]; exists{
-		err := fmt.Errorf("infix function already exists for token type %s", tokenType)
-		p.errors = append(p.errors, err)
-		return
-	}
-
-	p.infixParserMap[tokenType] = fn
-}
-
-func (p *Parser) currentPrecedence() int{
-	if p, ok := precendences[p.currToken.Type]; ok{
-		return p
-	}
-
-	return LOWEST
-}
-
-func (p *Parser) peekPrecedence() int{
-	if p, ok := precendences[p.peekToken.Type]; ok{
-		return p
-	}
-
-	return LOWEST
-}
-
-var precendences = map[token.TokenType]int{
-	token.PLUS: SUM,
-}
-
-const (
-	_int = iota
-	LOWEST
-	UNDEFINED2
-	UNDEFINED3
-	SUM
-	UNDEFINED5
-	PREFIX
-)

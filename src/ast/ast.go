@@ -78,6 +78,21 @@ func (rs *ReturnStatement) String() string{
 	return out.String()
 }
 
+type ExpressionStatement struct{
+	Token token.Token
+	Expression Expression
+}
+
+func (es *ExpressionStatement) statementNode(){}
+func (es *ExpressionStatement) TokenLiteral() string{return es.Token.Identifier}
+func (es *ExpressionStatement) String() string{
+	
+	if es.Expression != nil{
+	return es.Expression.String()	
+	}
+	return ""
+}
+
 type Variable struct{
 	Token token.Token
 	Value string
@@ -95,6 +110,24 @@ type IntegerLiteral struct{
 func (il *IntegerLiteral) expressionNode(){}
 func (il *IntegerLiteral) TokenLiteral() string{return il.Token.Identifier}
 func (il *IntegerLiteral) String() string{return il.Token.Identifier}
+
+type BooleanLiteral struct{
+	Token token.Token
+	Value bool
+}
+
+func (bl *BooleanLiteral) expressionNode(){}
+func (bl *BooleanLiteral) TokenLiteral() string{return bl.Token.Identifier}
+func (bl *BooleanLiteral) String() string{return bl.Token.Identifier}
+
+type StringLiteral struct{
+	Token token.Token
+	Value string
+}
+
+func (sl *StringLiteral) expressionNode(){}
+func (sl *StringLiteral) TokenLiteral() string{return sl.Token.Identifier}
+func (sl *StringLiteral) String() string{return sl.Token.Identifier}
 
 type PrefixExpression struct{
 	Token token.Token

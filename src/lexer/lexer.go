@@ -46,7 +46,6 @@ func (l *Lexer) NextToken() token.Token{
 	return  tk
 }
 
-
 func (l *Lexer) nextChar(){
 	if l.nextReadPosition>= len(l.input){
 		l.char = 0

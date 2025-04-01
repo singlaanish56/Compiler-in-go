@@ -51,32 +51,6 @@ func (p *Parser) parseArrayExpression() ast.Expression{
 	return arr
 }
 
-func (p *Parser) parseExpressionList(endToken token.TokenType) []ast.Expression{
-	list := []ast.Expression{}
-
-	if p.peekTokenIs(endToken){
-		p.nextToken()
-		return list
-	}
-
-	p.nextToken()
-
-	list = append(list, p.parseExpression(LOWEST))
-	
-	for p.peekTokenIs(token.COMMA){
-		p.nextToken()
-		p.nextToken()
-		
-		list = append(list, p.parseExpression(LOWEST))
-	}
-
-	if !p.checkPeek(endToken){
-		return nil
-	}
-
-	return list
-}
-
 func (p *Parser) parseGroupedExpression() ast.Expression{
 	p.nextToken()
 
@@ -127,7 +101,9 @@ func (p *Parser) parseIfExpression() ast.Expression{
 	}
 
 	p.nextToken()
+
 	exp.Condition = p.parseExpression(LOWEST)
+
 
 	if !p.checkPeek(token.CLOSEROUND){
 		return nil
@@ -136,7 +112,7 @@ func (p *Parser) parseIfExpression() ast.Expression{
 	if !p.checkPeek(token.OPENBRACE){
 		return nil
 	}
-
+	
 	exp.Consequence = p.parseBlockStatement()
 	if p.peekTokenIs(token.ELSE){
 		p.nextToken()
@@ -149,4 +125,50 @@ func (p *Parser) parseIfExpression() ast.Expression{
 	}
 
 	return exp
+}
+
+func (p *Parser) parseFunctionExpression() ast.Expression{
+	exp := &ast.FunctionExpression{Token: p.currToken}
+
+	if !p.checkPeek(token.OPENROUND){
+		return nil
+	}
+
+	exp.Parameters = p.parseFunctionArguments()
+
+	if !p.checkPeek(token.OPENBRACE){
+		return nil
+	}
+
+	exp.Body = p.parseBlockStatement()
+
+	return exp
+}
+
+func (p *Parser) parseFunctionArguments() []*ast.Variable{
+	params := []*ast.Variable{}
+
+	if p.peekTokenIs(token.CLOSEROUND){
+		p.nextToken()
+		return params
+	}
+
+	p.nextToken()
+
+	arg := &ast.Variable{Token: p.currToken, Value: p.currToken.Identifier}
+	params = append(params, arg)
+
+	for p.peekTokenIs(token.COMMA){
+		p.nextToken()
+		p.nextToken()
+
+		arg = &ast.Variable{Token: p.currToken, Value: p.currToken.Identifier}
+		params = append(params, arg)
+	}
+
+	if !p.checkPeek(token.CLOSEROUND){
+		return nil
+	}
+
+	return params
 }

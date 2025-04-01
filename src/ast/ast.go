@@ -236,6 +236,55 @@ func (ie *IfExpression) String() string{
 	return out.String()
 }
 
+type FunctionExpression struct{
+	Token token.Token
+	Parameters []*Variable
+	Body *BlockStatement
+}
+
+func (fe *FunctionExpression) expressionNode(){}
+func (fe *FunctionExpression) TokenLiteral() string{ return fe.Token.Identifier}
+func (fe *FunctionExpression) String() string{
+	var out bytes.Buffer
+
+	params := []string{}
+	for _, v := range fe.Parameters{
+		params = append(params, v.String())
+	}
+
+	out.WriteString("fn(")
+	out.WriteString(strings.Join(params,","))
+	out.WriteString("){")
+	out.WriteString(fe.Body.String())
+	out.WriteString("}")
+
+	return out.String()
+}
+
+type CallExpression struct{
+	Token token.Token
+	Function Expression
+	Arguments []Expression
+}
+
+func (ce *CallExpression) expressionNode(){}
+func (ce *CallExpression) TokenLiteral() string { return ce.Token.Identifier}
+func (ce *CallExpression) String() string{
+	var out bytes.Buffer
+
+	args := []string{}
+	for _, arg := range ce.Arguments{
+		args=append(args, arg.String())
+	}
+
+	out.WriteString(ce.Function.String())
+	out.WriteString("(")
+	out.WriteString(strings.Join(args, ","))
+	out.WriteString(")")
+
+	return out.String()
+}
+
 type PrefixExpression struct{
 	Token token.Token
 	Operator string
@@ -267,13 +316,10 @@ func (ie *InfixExpression) TokenLiteral() string{return ie.Token.Identifier}
 func (ie *InfixExpression) String() string{
 	var out bytes.Buffer
 	out.WriteString("(")
-	if ie.Left != nil{
-		out.WriteString(ie.Left.String())
-	}
-	out.WriteString(" " + ie.Operator + " ")
-	if ie.Right != nil{
-		out.WriteString(ie.Right.String())
-	}
+	out.WriteString(ie.Left.String())
+	out.WriteString(ie.Operator)
+	out.WriteString(ie.Right.String())
 	out.WriteString(")")
+
 	return out.String()
 }

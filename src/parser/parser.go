@@ -49,14 +49,21 @@ func New(lexer *lexer.Lexer) *Parser{
 	
 	p.addPrefix(token.IF, p.parseIfExpression)
 
+	p.addPrefix(token.FUNCTION, p.parseFunctionExpression)
+
 	p.addInfix(token.PLUS, p.parseInfixExpression)
 	p.addInfix(token.MINUS, p.parseInfixExpression)
 	p.addInfix(token.MULTIPLY, p.parseInfixExpression)
 	p.addInfix(token.DIVIDE, p.parseInfixExpression)
 
-	p.addInfix(token.OPENBRACKET, p.parserArrayIndexExpression)
+	p.addInfix(token.DOUBLEEQUALTO, p.parseInfixExpression)
+	p.addInfix(token.EXCLAMATIONEQUALTO, p.parseInfixExpression)
 
-	
+	p.addInfix(token.OPENANGLE, p.parseInfixExpression)
+	p.addInfix(token.CLOSEANGLE, p.parseInfixExpression)
+	p.addInfix(token.OPENBRACKET, p.parseArrayIndexExpression)
+
+	p.addInfix(token.OPENROUND, p.parseCallExpression)
 	return p
 }
 
@@ -168,5 +175,29 @@ func (p *Parser) parseExpression(precendence int) ast.Expression{
 
 }
 
+func (p *Parser) parseExpressionList(endToken token.TokenType) []ast.Expression{
+	list := []ast.Expression{}
 
+	if p.peekTokenIs(endToken){
+		p.nextToken()
+		return list
+	}
+
+	p.nextToken()
+
+	list = append(list, p.parseExpression(LOWEST))
+	
+	for p.peekTokenIs(token.COMMA){
+		p.nextToken()
+		p.nextToken()
+		
+		list = append(list, p.parseExpression(LOWEST))
+	}
+
+	if !p.checkPeek(endToken){
+		return nil
+	}
+
+	return list
+}
 

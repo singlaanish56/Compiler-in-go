@@ -19,7 +19,7 @@ func (p *Parser) parseInfixExpression(leftExpression ast.Expression) ast.Express
 	return exp
 }
 
-func (p *Parser) parserArrayIndexExpression(left ast.Expression) ast.Expression{
+func (p *Parser) parseArrayIndexExpression(left ast.Expression) ast.Expression{
 	indexExp := &ast.IndexExpression{Token: p.currToken, Left: left}
 
 	p.nextToken()
@@ -31,4 +31,10 @@ func (p *Parser) parserArrayIndexExpression(left ast.Expression) ast.Expression{
 	}
 
 	return indexExp
+}
+
+func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression{
+	exp := &ast.CallExpression{Token : p.currToken, Function : function}
+	exp.Arguments = p.parseExpressionList(token.CLOSEROUND)
+	return exp
 }

@@ -2,8 +2,8 @@ package parser
 
 import (
 	"fmt"
+
 	"github.com/singlaanish56/Compiler-in-go/token"
-	
 )
 
 func (p *Parser) Errors() []error{
@@ -77,11 +77,14 @@ func (p *Parser) peekPrecedence() int{
 var precendences = map[token.TokenType]int{
 	token.DOUBLEEQUALTO: EQUALS,
 	token.EXCLAMATIONEQUALTO : EQUALS,
+	token.OPENANGLE: LESSGREATER,
+	token.CLOSEANGLE: LESSGREATER,
 	token.PLUS: SUM,
 	token.MINUS: SUM,
 	token.MULTIPLY: PRODUCT,
 	token.DIVIDE: PRODUCT,
 	token.OPENBRACKET: INDEX,
+	token.OPENROUND: CALL,
 }
 
 const (
@@ -92,5 +95,6 @@ const (
 	SUM
 	PRODUCT
 	PREFIX
+	CALL
 	INDEX
 )

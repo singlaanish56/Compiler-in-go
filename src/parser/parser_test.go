@@ -168,6 +168,80 @@ func TestHashLiteral(t *testing.T){
  }
 }
 
+func TestFunctionExpression(t *testing.T){
+	input := `fn(x, y){x+y;}`
+
+	l := lexer.New(input)
+	p := New(l)
+	prog := p.ParserProgram()
+
+	if len(prog.Statements) != 1{
+		t.Errorf("the number of statements not as expected")
+		return
+	}
+
+	exp, ok := prog.Statements[0].(*ast.ExpressionStatement)
+	if !ok{
+		t.Errorf("the exp  type is wrong, got=%T", prog.Statements[0])
+		return 
+	}
+
+	ft, ok := exp.Expression.(*ast.FunctionExpression)
+	if !ok{
+		t.Errorf("the type of the literal got=%T", exp.Expression)
+		return
+	}
+
+	testLiteralExpression(t, ft.Parameters[0], "x")
+	testLiteralExpression(t, ft.Parameters[1], "y")
+
+	if len(ft.Body.Statements) != 1{
+		t.Errorf(" the number of the statement in the function not as expected, got=%T", len(ft.Body.Statements))
+		return 
+	}
+
+	body, ok := ft.Body.Statements[0].(*ast.ExpressionStatement)
+	if !ok{
+		t.Errorf("expected expression in the body as something else, got=%T", ft.Body.Statements[0])
+		return 
+	}
+
+	testInfix(t, body.Expression, "x", "+", "y")
+}
+
+func TestFunctionParamters(t *testing.T){
+	tests := []struct{
+		input string
+		expectedParams []string
+	}{
+		{"fn(){}", []string{}},
+		{"fn(x){}", []string{"x"}},
+		{"fn(x, y, z){}", []string{"x","y","z"}},
+	}
+
+	for _, tt := range tests{
+		l := lexer.New(tt.input)
+		p := New(l)
+		prog := p.ParserProgram()
+
+		if len(prog.Statements) != 1{
+			t.Errorf("the number of statements not as expected")
+			return
+		}
+
+		st := prog.Statements[0].(*ast.ExpressionStatement)
+		fn := st.Expression.(*ast.FunctionExpression)
+
+		if len(fn.Parameters) != len(tt.expectedParams){
+			t.Errorf("the length of the parameters not as expected=%d, got=%d", len(tt.expectedParams), len(fn.Parameters))
+		}
+
+		for i, arg := range fn.Parameters{
+			testLiteralExpression(t, arg, tt.expectedParams[i])
+		}
+	}
+}
+
 func  TestIfExpression(t *testing.T){
 	tests := []struct{
 		input string
@@ -232,6 +306,183 @@ func  TestIfExpression(t *testing.T){
 	}
 	}
 }
+
+func TestCallExpression(t *testing.T){
+	input := `add(1, 2*3, 4+5)`
+
+	l:= lexer.New(input)
+	p := New(l)
+	prog := p.ParserProgram()
+
+	if len(prog.Statements) != 1{
+		t.Errorf("the number of statements not as expected, got=%d", len(prog.Statements))
+		return
+	}
+
+	st, ok := prog.Statements[0].(*ast.ExpressionStatement)
+	if !ok{
+		t.Errorf("the expression type not as expected, got=%T", prog.Statements[0])
+		return
+	}
+
+	exp, ok := st.Expression.(*ast.CallExpression)
+	if !ok{
+		t.Errorf("the expression is wrong for the call expression, got=%T", st.Expression)
+		return
+	}
+
+	if !testIdentifier(t, exp.Function, "add"){
+		return
+	}
+
+	if len(exp.Arguments) != 3{
+		t.Errorf("wrong number of args for the function call, got=%d", len(exp.Arguments))
+		return
+	}
+
+	testLiteralExpression(t, exp.Arguments[0], 1)
+	testInfix(t, exp.Arguments[1], 2, "*", 3)
+	testInfix(t, exp.Arguments[2], 4, "+", 5)
+}
+
+func TestPrefixExpression(t *testing.T){
+	tests := []struct{
+		input string
+		operator string
+		number interface{}
+	}{
+		{"!5;","!",5},
+		{"-10;","-",10},
+		{"!true;","!",true},
+		{"!false;","!",false},
+	}
+
+	for _, tt := range tests{
+		l := lexer.New(tt.input)
+		p := New(l)
+		prog := p.ParserProgram()
+
+		if len(prog.Statements) != 1{
+			t.Errorf("the number of statements is not as expected")
+			return 
+		}
+		st, ok := prog.Statements[0].(*ast.ExpressionStatement)
+		if !ok{
+			t.Errorf("the statement is not type is not as expected, got=%T", prog.Statements[0])
+			return 
+		}
+
+		varr,  ok := st.Expression.(*ast.PrefixExpression)
+		if !ok{
+			t.Errorf("the statement is not type of prefix, got=%T", st.Expression)
+		}
+
+		if varr.Operator != tt.operator{
+			t.Fatalf("the operator is not as expected=%s, got=%s", tt.operator, varr.Operator)
+		}
+
+		if testLiteralExpression(t, varr.Right, tt.number){
+			return 
+		}
+	}
+}
+
+func TestInfixExpression(t *testing.T){
+	tests := []struct{
+		input string
+		left interface{}
+		operator string
+		right interface{}
+	}{
+		{"5+5;", 5, "+", 5},
+		{"5-5;", 5, "-", 5},
+		{"5/5;", 5, "/", 5},
+		{"5*5;", 5, "*", 5},
+		{"5>5;", 5, ">", 5},
+		{"5<5;", 5, "<", 5},
+		{"5==5;", 5, "==", 5},
+		{"5!=5;", 5, "!=", 5},
+		{"true==true", true, "==", true},
+		{"true != false", true, "!=", false},
+		{"false == false", false, "==", false},
+	}
+
+	for _, tt := range tests{
+		l := lexer.New(tt.input)
+		p := New(l)
+		prog := p.ParserProgram()
+
+		if len(prog.Statements) != 1{
+			t.Errorf("the number of expected statements is not expected")
+			return 
+		}
+
+		st, ok := prog.Statements[0].(*ast.ExpressionStatement)
+		if !ok{
+			t.Errorf("the first statement of not type expression, got=%T", prog.Statements[0])
+		}
+
+		varr, ok := st.Expression.(*ast.InfixExpression)
+		if !ok{
+			t.Errorf("the infix expression type is not as expected, got=%T", st.Expression)
+			return
+		}
+
+		if !testLiteralExpression(t, varr.Left, tt.left){
+			return 
+		}
+		if varr.Operator != tt.operator{
+			t.Fatalf("the operator type doesnt match , expected=%s, got=%s", tt.operator, varr.Operator)
+		}
+
+		if !testLiteralExpression(t, varr.Right, tt.right){
+			return 
+		}
+	}
+}
+
+func TestOperatorPrecendence(t *testing.T){
+	tests := []struct{
+		input string
+		expected string
+	}{
+		{"-a*b","((-a)*b)"},
+		{"!-a","(!(-a))"},
+		{"a+b+c","((a+b)+c)"},
+		{"a+b-c","((a+b)-c)"},
+		{"a*b*c","((a*b)*c)"},
+		{"a+b/c","(a+(b/c))"},
+		{"a+b/c","(a+(b/c))"},
+		{"a+b*c+d/e-f","(((a+(b*c))+(d/e))-f)"},
+		{"3+4; -5*5","(3+4)((-5)*5)"},
+		{"5>4 == 3<4","((5>4)==(3<4))"},
+		{"5<4 == 3>4","((5<4)==(3>4))"},
+		{"5>4 != 3<4","((5>4)!=(3<4))"},
+		{"3+4*5==3*1+4*5","((3+(4*5))==((3*1)+(4*5)))"},
+		{"true","true"},
+		{"false","false"},
+		{"3>5 == false","((3>5)==false)"},
+		{"3<5 != true","((3<5)!=true)"},
+		{"a*(b*c)","(a*(b*c))"},
+		{"(a+b)/c","((a+b)/c)"},
+		{"a + add(b*c) +d", "((a+add((b*c)))+d)"},
+		{"add(a,b,1,2*3,4+5,add(6,7*8))","add(a,b,1,(2*3),(4+5),add(6,(7*8)))"},
+		{"a * [1,2,3,4][b*c]*d","((a*([1,2,3,4][(b*c)]))*d)"},
+	}
+
+	for _,tt := range tests{
+		l := lexer.New(tt.input)
+		p := New(l)
+		prog := p.ParserProgram()
+
+		actual := prog.String()
+
+		if actual != tt.expected{
+			t.Errorf("expected=%q, got=%q", tt.expected, actual)
+		}
+	}
+}
+
 //helper functions
 
 func testLetStatement(t *testing.T, s ast.Statement, name string) bool{

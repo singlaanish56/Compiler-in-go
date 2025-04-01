@@ -2,6 +2,8 @@ package ast
 
 import (
 	"bytes"
+	"strings"
+
 	"github.com/singlaanish56/Compiler-in-go/token"
 )
 
@@ -93,6 +95,22 @@ func (es *ExpressionStatement) String() string{
 	return ""
 }
 
+type BlockStatement struct{
+	Token token.Token
+	Statements []Statement
+}
+
+func (bs *BlockStatement) statementNode(){}
+func (bs *BlockStatement) TokenLiteral() string { return bs.Token.Identifier}
+func (bs *BlockStatement) String() string{
+	var out bytes.Buffer
+	for _, s := range bs.Statements{
+		out.WriteString(s.String())
+	}
+
+	return out.String()
+}
+
 type Variable struct{
 	Token token.Token
 	Value string
@@ -128,6 +146,95 @@ type StringLiteral struct{
 func (sl *StringLiteral) expressionNode(){}
 func (sl *StringLiteral) TokenLiteral() string{return sl.Token.Identifier}
 func (sl *StringLiteral) String() string{return sl.Token.Identifier}
+
+type ArrayLiteral struct{
+	Token token.Token
+	Elements []Expression
+}
+
+func (al *ArrayLiteral) expressionNode(){}
+func (al *ArrayLiteral) TokenLiteral() string { return al.Token.Identifier}
+func (al *ArrayLiteral) String() string{
+	var out bytes.Buffer
+	elements := []string{}
+	for _, el := range al.Elements{
+		elements = append(elements, el.String())
+	}
+
+	out.WriteString("[")
+	out.WriteString(strings.Join(elements,","))
+	out.WriteString("]")
+
+	return out.String()
+}
+
+type IndexExpression struct{
+	Token token.Token
+	Left Expression
+	Index Expression
+}
+
+func (ie *IndexExpression) expressionNode(){}
+func (ie *IndexExpression) TokenLiteral() string{ return ie.Token.Identifier}
+func (ie *IndexExpression) String() string{
+  var out bytes.Buffer
+
+  out.WriteString("(")
+  out.WriteString(ie.Left.String())
+  out.WriteString("[")
+  out.WriteString(ie.Index.String())
+  out.WriteString("]")
+  out.WriteString(")")
+
+  return out.String()
+}
+
+type HashLiteral struct{
+	Token token.Token
+	Pairs map[Expression]Expression
+}
+
+func (hl *HashLiteral) expressionNode(){}
+func (hl *HashLiteral) TokenLiteral() string { return hl.Token.Identifier}
+func (hl *HashLiteral) String() string{
+	var out bytes.Buffer
+
+	elements := []string{}
+
+	for k, v := range hl.Pairs{
+		elements = append(elements, k.String()+":"+v.String())
+	}
+
+	out.WriteString("{")
+	out.WriteString(strings.Join(elements,","))
+	out.WriteString("}")
+
+	return out.String()
+}
+
+type IfExpression struct{
+	Token token.Token
+	Condition Expression
+	Consequence *BlockStatement
+	Alternative *BlockStatement
+}
+
+func (ie *IfExpression) expressionNode(){}
+func (ie *IfExpression) TokenLiteral() string { return ie.Token.Identifier}
+func (ie *IfExpression) String() string{
+	var out bytes.Buffer
+
+	out.WriteString("if")
+	out.WriteString(ie.Condition.String())
+	out.WriteString(ie.Consequence.String())
+
+	if ie.Alternative != nil{
+		out.WriteString("else")
+		out.WriteString(ie.Alternative.String())
+	}
+
+	return out.String()
+}
 
 type PrefixExpression struct{
 	Token token.Token

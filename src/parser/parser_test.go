@@ -6,7 +6,6 @@ import (
 
 	"github.com/singlaanish56/Compiler-in-go/ast"
 	"github.com/singlaanish56/Compiler-in-go/lexer"
-
 )
 
 func TestLetStatement(t *testing.T){
@@ -71,6 +70,168 @@ func TestReturnStatement(t *testing.T){
 	}
 }
 
+func TestArrayLiteral(t *testing.T){
+	input := "[1, 2*2, 3+3]"
+
+	l := lexer.New(input)
+	p := New(l)
+	prog := p.ParserProgram()
+
+	array , ok := prog.Statements[0].(*ast.ExpressionStatement).Expression.(*ast.ArrayLiteral)
+	if !ok{
+		t.Fatalf("the type of the array is not array literal , got=%T", prog.Statements[0].(*ast.ExpressionStatement).Expression)
+	}
+
+	if len(array.Elements) != 3{
+		t.Fatalf("the size of the array not as expected= 3, got=%d", len(array.Elements))
+	}
+
+	testIntegerLiteral(t, array.Elements[0], 1)
+	testInfix(t, array.Elements[1], 2, "*", 2)
+	testInfix(t, array.Elements[2], 3, "+", 3)
+}
+
+func TestParserIndexExpression(t *testing.T){
+	input := "arr[1+1]"
+	l := lexer.New(input)
+	p := New(l)
+	prog := p.ParserProgram()
+	
+	if len(prog.Statements) != 1{
+		t.Errorf("the number of statements not as expected")
+		return 
+	}
+
+	st, ok := prog.Statements[0].(*ast.ExpressionStatement)
+	if !ok{
+		t.Errorf("the expression type not as expected, got=%T", prog.Statements[0])
+		return 
+	}
+
+	exp, ok := st.Expression.(*ast.IndexExpression)
+	if !ok{
+		t.Errorf("the expression type not as expected, got=%T", prog.Statements[0])
+		return
+	}
+
+	if !testIdentifier(t, exp.Left, "arr"){
+		return 
+	}
+
+	if !testInfix(t, exp.Index, 1, "+", 1){
+		return 
+	}
+}
+
+func TestHashLiteral(t *testing.T){
+ input := `{"one":1,"second":2,"third":3}`
+
+ l := lexer.New(input)
+ p := New(l)
+ prog := p.ParserProgram()
+ 
+ if len(prog.Statements) != 1{
+	t.Errorf("the number of statements is not as expected")
+	return
+ }
+
+ st, ok := prog.Statements[0].(*ast.ExpressionStatement)
+ if !ok{
+	t.Errorf("the expression type is not expected got=%T", prog.Statements[0])
+	return
+ }
+
+ hash, ok := st.Expression.(*ast.HashLiteral)
+ if !ok{
+	t.Errorf("the number of key value pairs is not as expected got=%T",st.Expression)
+	return 
+ }
+ if len(hash.Pairs) != 3{
+	t.Errorf("the number of kv pairss not as expected , expected=3, got=%d", len(hash.Pairs))
+	return
+ }
+
+ expected := map[string]int{
+	"one":1,
+	"second":2,
+	"third":3,
+ }
+ for k, v := range hash.Pairs{
+	literal, ok := k.(*ast.StringLiteral)
+	if !ok{
+		t.Errorf("the key is not a string literal , got=%T", literal)
+	}
+
+	expectedValue := expected[literal.String()]
+
+	testIntegerLiteral(t, v, int64(expectedValue))
+ }
+}
+
+func  TestIfExpression(t *testing.T){
+	tests := []struct{
+		input string
+	}{
+		{"if(x<y){x}"},
+		{"if(x<y){x}else{y}"},
+	}
+
+	for _, tt := range tests{
+	
+	l := lexer.New(tt.input)
+	p := New(l)
+	prog := p.ParserProgram()
+
+	if len(prog.Statements) !=1 {
+		t.Errorf("the len of the statements  is wrong, got=%d", len(prog.Statements))
+		return 
+	}
+
+	st, ok := prog.Statements[0].(*ast.ExpressionStatement)
+	if !ok{
+		t.Errorf("the program statement is of wrong type , got=%T", prog.Statements[0])
+		return
+	}
+
+	exp, ok := st.Expression.(*ast.IfExpression)
+	if !ok{
+		t.Errorf("expected the if expression , got=%T",st.Expression)
+		return
+	}
+
+	if !testInfix(t, exp.Condition, "x", "<", "y"){
+		return 
+	}
+
+	if len(exp.Consequence.Statements) != 1{
+		t.Errorf("the consquence is not enoughs statements")
+		return 
+	}
+
+	con, ok := exp.Consequence.Statements[0].(*ast.ExpressionStatement)
+	if !ok{
+		t.Errorf("the consquence the if doesnt have the expected type got=%T", con)
+		return 
+	}
+	if !testIdentifier(t, con.Expression, "x"){
+		return 
+	}
+	if exp.Alternative != nil{
+		if len(exp.Alternative.Statements) != 1{
+			t.Errorf("the consquence has not enough statements")
+			return 
+		}
+		alt, ok := exp.Alternative.Statements[0].(*ast.ExpressionStatement)
+		if !ok{
+			t.Errorf("the consquence for the if doesnt have the expected type=%T",exp.Alternative.Statements[0])
+			return 
+		}
+		if !testIdentifier(t, alt.Expression, "y"){
+			return 
+		}
+	}
+	}
+}
 //helper functions
 
 func testLetStatement(t *testing.T, s ast.Statement, name string) bool{
@@ -170,4 +331,27 @@ func testBoolean(t *testing.T, b ast.Expression, expected interface{}) bool{
 	} 
 
 	return true
+}
+
+func testInfix(t *testing.T, exp ast.Expression, left interface{}, operator string , right interface{}) bool{
+inexp, ok := exp.(*ast.InfixExpression)
+if !ok{
+	t.Errorf("exp not infix, got=%T", inexp)
+	return false
+}
+
+if !testLiteralExpression(t, inexp.Left, left){
+	return false
+}
+
+if inexp.Operator != operator{
+	t.Errorf("operator not matchinf for the infix expression, got=%q, expected=%q", inexp.Operator, operator)
+	return false
+}
+
+if !testLiteralExpression(t, inexp.Right, right){
+	return false
+}
+
+return true
 }

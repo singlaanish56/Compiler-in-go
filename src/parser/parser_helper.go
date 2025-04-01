@@ -75,15 +75,22 @@ func (p *Parser) peekPrecedence() int{
 }
 
 var precendences = map[token.TokenType]int{
+	token.DOUBLEEQUALTO: EQUALS,
+	token.EXCLAMATIONEQUALTO : EQUALS,
 	token.PLUS: SUM,
+	token.MINUS: SUM,
+	token.MULTIPLY: PRODUCT,
+	token.DIVIDE: PRODUCT,
+	token.OPENBRACKET: INDEX,
 }
 
 const (
 	_int = iota
 	LOWEST
-	UNDEFINED2
-	UNDEFINED3
+	EQUALS
+	LESSGREATER
 	SUM
-	UNDEFINED5
+	PRODUCT
 	PREFIX
+	INDEX
 )

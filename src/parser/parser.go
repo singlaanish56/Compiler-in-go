@@ -42,10 +42,21 @@ func New(lexer *lexer.Lexer) *Parser{
 	p.addPrefix(token.TRUE, p.parseBooleanExpression)
 	p.addPrefix(token.FALSE, p.parseBooleanExpression)
 
+	p.addPrefix(token.OPENBRACKET, p.parseArrayExpression)
+	p.addPrefix(token.OPENROUND, p.parseGroupedExpression)
+	p.addPrefix(token.CLOSEROUND, p.parseGroupedExpression)
+	p.addPrefix(token.OPENBRACE, p.parseHashMapExpression)
+	
+	p.addPrefix(token.IF, p.parseIfExpression)
 
 	p.addInfix(token.PLUS, p.parseInfixExpression)
 	p.addInfix(token.MINUS, p.parseInfixExpression)
+	p.addInfix(token.MULTIPLY, p.parseInfixExpression)
+	p.addInfix(token.DIVIDE, p.parseInfixExpression)
 
+	p.addInfix(token.OPENBRACKET, p.parserArrayIndexExpression)
+
+	
 	return p
 }
 
@@ -116,6 +127,23 @@ func (p *Parser) parseExpressionStatement() ast.Statement{
 		p.nextToken()
 	}
 	return st
+}
+
+func (p *Parser) parseBlockStatement() *ast.BlockStatement{
+	bexp := &ast.BlockStatement{Token : p.currToken}
+	bexp.Statements = []ast.Statement{}
+
+	p.nextToken()
+
+	for !p.currTokenIs(token.CLOSEBRACE) && !p.currTokenIs(token.EOF){
+		st := p.parseStatement()
+		if st != nil{
+			bexp.Statements = append(bexp.Statements, st)
+		}
+		p.nextToken()
+	}
+
+	return bexp
 }
 
 func (p *Parser) parseExpression(precendence int) ast.Expression{

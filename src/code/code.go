@@ -6,6 +6,8 @@ import (
 )
 
 type Instructions []byte
+func (i Instructions) String() string{ return ""}
+
 
 type Opcode byte
 
@@ -42,6 +44,25 @@ func Make(op Opcode, operands...int) []byte{
 	}
 
 	return instruction
+}
+
+func ReadOperands(definition *Definition, ins Instructions) ([]int ,int){
+	operands := make([]int, len(definition.OperandWidths))
+	offset:=0
+	for i, width := range definition.OperandWidths{
+		switch width{
+		case 2 :
+			operands[i] = int(ReadUint16(ins[offset:]))
+		}
+
+		offset += width
+	}
+
+	return operands, offset
+}
+
+func ReadUint16(ins Instructions) uint16{
+	return binary.BigEndian.Uint16(ins)
 }
 
 func Lookup(op byte) (*Definition, error){

@@ -1,13 +1,46 @@
 package code
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 )
 
 type Instructions []byte
-func (i Instructions) String() string{ return ""}
+func (ins Instructions) String() string{
+	var out bytes.Buffer
 
+	i := 0
+	for i< len(ins){
+		def, err := Lookup(ins[i])
+		if err != nil{
+			fmt.Fprintf(&out, "ERROR: %s\n", err)
+			continue
+		}
+
+		operands , bytesRead := ReadOperands(def, ins[i+1:])
+		
+		fmt.Fprintf(&out , "%04d %s\n\t", i, ins.instructionToFmt(def, operands))
+
+		i += 1+ bytesRead
+	}
+
+	return out.String()
+}
+
+func (ins Instructions) instructionToFmt(def *Definition, operands []int) string{
+	operandsExpectedLen := len(def.OperandWidths)
+	if len(operands) != operandsExpectedLen{
+		return fmt.Sprintf("ERROR: wrong number of operands. expected=%d, got=%d", operandsExpectedLen, len(operands))
+	}
+
+	switch operandsExpectedLen{
+	case 1:
+		return fmt.Sprintf("%s %d", def.Name, operands[0])
+	}
+
+	return fmt.Sprintf("ERROR: unhandled operandCount for %s\n", def.Name)
+}
 
 type Opcode byte
 

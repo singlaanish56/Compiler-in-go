@@ -1,9 +1,11 @@
 package compiler
 
 import (
+	"fmt"
+
+	"github.com/singlaanish56/Compiler-in-go/ast"
 	"github.com/singlaanish56/Compiler-in-go/code"
 	"github.com/singlaanish56/Compiler-in-go/object"
-	"github.com/singlaanish56/Compiler-in-go/ast"
 )
 
 type Compiler struct{
@@ -47,6 +49,13 @@ func (c *Compiler) Compile(node ast.ASTNode) error{
 		if err != nil{
 			return err
 		}
+
+		switch node.Operator{
+		case "+":
+			c.emit(code.OpAdd)
+		default:
+			return fmt.Errorf("unknown operator %s", node.Operator)
+		}
 	case *ast.IntegerLiteral:
 		integerObject := &object.Integer{Value: node.Value}
 		c.emit(code.OpConstant, c.addConstant(integerObject))
@@ -63,7 +72,6 @@ func (c *Compiler) Bytecode() *Bytecode{
 	}
 }
 
-//returns the index of the last instructions that is  set in the list
 func (c *Compiler) emit(operation code.Opcode, operands... int) int{
 	ins := code.Make(operation, operands...)
 	lastInstructionPos := c.addInstruction(ins)

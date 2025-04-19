@@ -12,10 +12,19 @@ type Object interface{
 
 const (
 	INTEGER_OBJ = "INTEGER"
+	BOOLEAN_OBJ = "BOOLEAN"
 )
+
 type Integer struct{
 	Value int64
 }
 
 func (i *Integer) Type() ObjectType{ return INTEGER_OBJ }
 func (i *Integer) Inspect() string{ return fmt.Sprintf("%d", i.Value)}
+
+type Boolean struct{
+	Value bool
+}
+
+func (i *Boolean) Type() ObjectType{ return BOOLEAN_OBJ }
+func (i *Boolean) Inspect() string{ return fmt.Sprintf("%d", i.Value)}

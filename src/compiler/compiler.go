@@ -60,13 +60,26 @@ func (c *Compiler) Compile(node ast.ASTNode) error{
 			c.emit(code.OpMul)
 		case "/":
 			c.emit(code.OpDiv)
+		case ">":
+			c.emit(code.OpGreaterThan)
+		case "<":
+			c.emit(code.OpLessThan)
+		case "==":
+			c.emit(code.OpEqual)
+		case "!=":
+			c.emit(code.OpNotEqual)
 		default:
 			return fmt.Errorf("unknown operator %s", node.Operator)
 		}
 	case *ast.IntegerLiteral:
 		integerObject := &object.Integer{Value: node.Value}
 		c.emit(code.OpConstant, c.addConstant(integerObject))
-
+	case *ast.BooleanLiteral:
+		if node.Value{
+			c.emit(code.OpTrue)
+		}else{
+			c.emit(code.OpFalse)
+		}
 	}
 
 	return nil

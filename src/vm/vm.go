@@ -9,6 +9,8 @@ import (
 
 
 const StackSize = 2048
+var True = &object.Boolean{Value: true}
+var False = &object.Boolean{Value: false}
 
 type VM struct{
 	constants []object.Object
@@ -50,26 +52,24 @@ func (vm *VM) Run() error{
 			if err != nil{
 				return err
 			}
-		case code.OpAdd:
-			err := vm.executeBinaryOperation(code.OpAdd)
+		case code.OpAdd, code.OpSub, code.OpMul, code.OpDiv:
+			err := vm.executeBinaryOperation(op)
 			if err != nil{
 				 return err
 			}
-		case code.OpSub:
-			err := vm.executeBinaryOperation(code.OpSub)
-			if err != nil{
-				 return err
+		case code.OpTrue:
+			if err:=vm.push(True);err != nil{
+				return err
 			}
-		case code.OpMul:
-			err := vm.executeBinaryOperation(code.OpMul)
-			if err != nil{
-				 return err
+		case code.OpFalse:
+			if err:=vm.push(False);err != nil{
+				return err
 			}
-		case code.OpDiv:
-			err := vm.executeBinaryOperation(code.OpDiv)
-			if err != nil{
-				 return err
+		case code.OpGreaterThan, code.OpLessThan, code.OpEqual, code.OpNotEqual:
+			if err := vm.executeComparison(op);err != nil{
+				return err
 			}
+
 		case code.OpPop:
 			vm.pop()
 		}
@@ -127,4 +127,48 @@ func (vm *VM) executeIntegerBinaryOperation(op code.Opcode, left, right object.O
 	}
 
 	return vm.push(&object.Integer{Value: result})
+}
+
+func (vm *VM) executeComparison(op code.Opcode) error{
+	right := vm.pop()
+	left := vm.pop()
+
+	if left.Type() == object.INTEGER_OBJ || right.Type() == object.INTEGER_OBJ{
+		return vm.executeIntegerComparison(op, left, right)
+	}
+
+	switch op{
+	case code.OpEqual:
+		return vm.push(toBooleanObject(right==left))
+	case code.OpNotEqual:
+		return vm.push(toBooleanObject(right != left))
+	default:
+		return fmt.Errorf("unsupported comparison operation %d", op)
+	}
+}
+
+func (vm *VM) executeIntegerComparison(op code.Opcode, left, right object.Object) error{
+	leftVal := left.(*object.Integer).Value
+	rightVal := right.(*object.Integer).Value
+
+	switch op{
+	case code.OpEqual:
+		return vm.push(toBooleanObject(leftVal == rightVal))
+	case code.OpNotEqual:
+		return vm.push(toBooleanObject(leftVal != rightVal))
+	case code.OpGreaterThan:
+		return vm.push(toBooleanObject(leftVal > rightVal))
+	case code.OpLessThan:
+		return vm.push(toBooleanObject(leftVal < rightVal))
+	default:
+		return fmt.Errorf("unsupported comparison operation %d", op)
+	}
+}
+
+func toBooleanObject(val bool) *object.Boolean{
+	if val{
+		 return True
+	}
+
+	return False
 }

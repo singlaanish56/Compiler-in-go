@@ -31,6 +31,20 @@ func TestIntegerArithmetic(t *testing.T){
 	runCompilerTests(t, tests)
 }
 
+func TestBooleanArithmetic(t *testing.T){
+	tests := []testCompilerStructs{
+		{"true", []interface{}{}, []code.Instructions{code.Make(code.OpTrue), code.Make(code.OpPop)}},
+		{"false", []interface{}{}, []code.Instructions{code.Make(code.OpFalse), code.Make(code.OpPop)}},
+		{"1>2", []interface{}{1, 2}, []code.Instructions{code.Make(code.OpConstant, 0), code.Make(code.OpConstant, 1), code.Make(code.OpGreaterThan), code.Make(code.OpPop)}},
+		{"1<2", []interface{}{1, 2}, []code.Instructions{code.Make(code.OpConstant, 0), code.Make(code.OpConstant, 1), code.Make(code.OpLessThan), code.Make(code.OpPop)}},
+		{"1==2", []interface{}{1, 2}, []code.Instructions{code.Make(code.OpConstant, 0), code.Make(code.OpConstant, 1), code.Make(code.OpEqual), code.Make(code.OpPop)}},
+		{"1!=2", []interface{}{1, 2}, []code.Instructions{code.Make(code.OpConstant, 0), code.Make(code.OpConstant, 1), code.Make(code.OpNotEqual), code.Make(code.OpPop)}},
+		{"true==false", []interface{}{}, []code.Instructions{code.Make(code.OpTrue), code.Make(code.OpFalse), code.Make(code.OpEqual), code.Make(code.OpPop)}},
+		{"true!=false", []interface{}{}, []code.Instructions{code.Make(code.OpTrue), code.Make(code.OpFalse), code.Make(code.OpNotEqual), code.Make(code.OpPop)}},
+	}
+
+	runCompilerTests(t, tests)
+}
 func runCompilerTests(t *testing.T, tests []testCompilerStructs){
 	t.Helper()
 

@@ -46,7 +46,7 @@ func Start(in io.Reader, out io.Writer){
 			continue
 		}
 
-		stackTop := vmMachine.StackTop()
+		stackTop := vmMachine.LastPoppedStackElement()
 		io.WriteString(out, stackTop.Inspect())
 		io.WriteString(out, "\n")
 	}

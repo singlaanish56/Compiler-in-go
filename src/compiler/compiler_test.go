@@ -21,7 +21,11 @@ type testCompilerStructs struct{
 
 func TestIntegerArithmetic(t *testing.T){
 	tests :=[]testCompilerStructs{
-		{"1+2", []interface{}{1,2}, []code.Instructions{code.Make(code.OpConstant, 0), code.Make(code.OpConstant, 1), code.Make(code.OpAdd)}},
+		{"1+2", []interface{}{1, 2}, []code.Instructions{code.Make(code.OpConstant, 0), code.Make(code.OpConstant, 1), code.Make(code.OpAdd), code.Make(code.OpPop)}},
+		{"1;2", []interface{}{1, 2}, []code.Instructions{code.Make(code.OpConstant, 0), code.Make(code.OpPop), code.Make(code.OpConstant, 1), code.Make(code.OpPop)}},
+		{"1-2", []interface{}{1, 2}, []code.Instructions{code.Make(code.OpConstant, 0), code.Make(code.OpConstant, 1), code.Make(code.OpSub), code.Make(code.OpPop)}},
+		{"1*2", []interface{}{1, 2}, []code.Instructions{code.Make(code.OpConstant, 0), code.Make(code.OpConstant, 1), code.Make(code.OpMul), code.Make(code.OpPop)}},
+		{"2/1", []interface{}{2, 1}, []code.Instructions{code.Make(code.OpConstant, 0), code.Make(code.OpConstant, 1), code.Make(code.OpDiv), code.Make(code.OpPop)}},
 	}
 
 	runCompilerTests(t, tests)

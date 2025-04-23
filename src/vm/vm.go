@@ -69,7 +69,14 @@ func (vm *VM) Run() error{
 			if err := vm.executeComparison(op);err != nil{
 				return err
 			}
-
+		case code.OpBang:
+			if err := vm.executeBangOperation(); err != nil{
+				return err
+			}
+		case code.OpMinus:
+			if err := vm.executeMinusOperation(); err != nil{
+				return err
+			}
 		case code.OpPop:
 			vm.pop()
 		}
@@ -163,6 +170,30 @@ func (vm *VM) executeIntegerComparison(op code.Opcode, left, right object.Object
 	default:
 		return fmt.Errorf("unsupported comparison operation %d", op)
 	}
+}
+
+func (vm *VM) executeBangOperation() error{
+	right := vm.pop()
+
+	switch right{
+		case True:
+			return vm.push(False)
+		case False:
+			return vm.push(True)
+		default:
+			return fmt.Errorf("unsupported bang operation %s", right.Type())	
+	}
+}
+
+func (vm *VM) executeMinusOperation() error{
+	right := vm.pop()
+
+	if right.Type() != object.INTEGER_OBJ{
+		return fmt.Errorf("unsupported type for minus operation %s", right.Type())
+	}
+
+	rightVal := right.(*object.Integer).Value
+	return vm.push(&object.Integer{Value: -rightVal})
 }
 
 func toBooleanObject(val bool) *object.Boolean{

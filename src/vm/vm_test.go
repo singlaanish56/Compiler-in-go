@@ -100,6 +100,9 @@ func TestIntegerArithmetic(t *testing.T){
 		{"6/2", 3},
 		{"1*3-4", -1},
 		{"5 * (2+10)", 60},
+		{"-5", -5},
+		{"-10", -10},
+		{"-50+10", -40},
 	}
 
 	runVmTests(t, tests)
@@ -115,6 +118,10 @@ func TestBooleanLiterals(t *testing.T){
 		{"5!=4", true},
 		{"true==false", false},
 		{"true!=false", true},
+		{"!true", false},
+		{"!!true", true},
+		{"!!false", false},
+		{"!false", true},
 	}
 
 	runVmTests(t, tests)

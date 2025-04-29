@@ -11,6 +11,7 @@ import (
 const StackSize = 2048
 var True = &object.Boolean{Value: true}
 var False = &object.Boolean{Value: false}
+var Null = &object.Null{}
 
 type VM struct{
 	constants []object.Object
@@ -75,6 +76,22 @@ func (vm *VM) Run() error{
 			}
 		case code.OpMinus:
 			if err := vm.executeMinusOperation(); err != nil{
+				return err
+			}
+		case code.OpJumpNotTruthy:
+			pos := int(code.ReadUint16(vm.instructions[i+1:]))
+			i+=2
+
+			condition := vm.pop()
+			if !isTruthy(condition){
+				i=pos-1
+			}
+		case code.OpJump:
+			pos := int(code.ReadUint16(vm.instructions[i+1:]))
+			i=pos-1
+		case code.OpNull:
+			err := vm.push(Null)
+			if err != nil{
 				return err
 			}
 		case code.OpPop:
@@ -180,6 +197,8 @@ func (vm *VM) executeBangOperation() error{
 			return vm.push(False)
 		case False:
 			return vm.push(True)
+		case Null:
+			return vm.push(True)
 		default:
 			return fmt.Errorf("unsupported bang operation %s", right.Type())	
 	}
@@ -202,4 +221,16 @@ func toBooleanObject(val bool) *object.Boolean{
 	}
 
 	return False
+}
+
+func isTruthy(obj object.Object) bool{
+	switch obj := obj.(type){
+
+		case *object.Boolean:
+			return obj.Value
+		case *object.Null:
+			return false
+		default:
+			return true
+	}
 }

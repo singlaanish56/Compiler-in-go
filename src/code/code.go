@@ -124,6 +124,8 @@ var definitions = map[Opcode] *Definition{
 	OpLessThan : {"OpLessThan", []int{}},
 	OpMinus : {"OpMinus", []int{}},
 	OpBang : {"OpBang", []int{}},	
+	OpJumpNotTruthy : {"OpJumpNotTruthy", []int{2}},
+	OpJump : {"OpJump", []int{2}},
 }
 
 const (
@@ -141,4 +143,6 @@ const (
 	OpLessThan
 	OpMinus
 	OpBang
+	OpJumpNotTruthy
+	OpJump
 )

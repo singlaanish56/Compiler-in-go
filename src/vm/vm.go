@@ -9,6 +9,7 @@ import (
 
 
 const StackSize = 2048
+const GlobalSize= 65536
 var True = &object.Boolean{Value: true}
 var False = &object.Boolean{Value: false}
 var Null = &object.Null{}
@@ -19,6 +20,8 @@ type VM struct{
 
 	stack []object.Object
 	stackPointer int
+
+	globalStore []object.Object
 }
 
 func New(bytecode *compiler.Bytecode) *VM{
@@ -27,6 +30,7 @@ func New(bytecode *compiler.Bytecode) *VM{
 		constants: bytecode.Constants,
 		stack: make([]object.Object, StackSize),
 		stackPointer: 0,
+		globalStore: make([]object.Object, GlobalSize),
 	}
 }
 
@@ -89,6 +93,17 @@ func (vm *VM) Run() error{
 		case code.OpJump:
 			pos := int(code.ReadUint16(vm.instructions[i+1:]))
 			i=pos-1
+		case code.OpSetGlobal:
+			globalIndex := code.ReadUint16(vm.instructions[i+1:])
+			i+=2
+			vm.globalStore[globalIndex]=vm.pop()
+		case code.OpGetGlobal:
+			globalIndex := code.ReadUint16(vm.instructions[i+1:])
+			i+=2
+			err := vm.push(vm.globalStore[globalIndex])
+			if err != nil{
+				return err
+			}
 		case code.OpNull:
 			err := vm.push(Null)
 			if err != nil{

@@ -43,6 +43,19 @@ func testBooleanObject(expected bool, obj object.Object) error{
 	return nil
 }
 
+func testStringObject(expected string, obj object.Object) error{
+	result, ok := obj.(*object.String)
+	if !ok{
+		return fmt.Errorf("the object type is not string, got=%T", obj)
+	}
+
+	if result.Value != expected{
+		return fmt.Errorf("the expected=%s string value is not equal, got=%s", expected, result.Value)
+	}
+
+	return nil
+}
+
 type vmTestCase struct{
 	input string
 	expected interface{}
@@ -86,6 +99,11 @@ func testExpectedObject(t *testing.T, expected interface{}, obj object.Object){
 		err := testBooleanObject(bool(expected), obj)
 		if err != nil{
 			t.Errorf("testBooleanObject failed: %s", err)
+		}
+	case string:
+		err := testStringObject(expected, obj)
+		if err != nil{
+			t.Errorf("test for the string object failed: %s", err)
 		}
 	case *object.Null:
 		if obj!=Null{
@@ -155,6 +173,16 @@ func TestGlobalLetStatements(t *testing.T){
 		{"let one=1; one", 1},
 		{"let one=1; let two=2;one+two", 3},
 		{"let one=1; let two=one+one;one+two", 3},
+	}
+
+	runVmTests(t, tests)
+}
+
+func TestStringExpressions(t *testing.T){
+	tests:=[]vmTestCase{
+		{`"monkey"`, "monkey"},
+		{`"mon" + "key"`, "monkey"},
+		{`"mon" + "key" + "banana"`, "monkeybanana"},
 	}
 
 	runVmTests(t, tests)

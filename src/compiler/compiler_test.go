@@ -66,6 +66,15 @@ func TestGlobalVariables(t *testing.T){
 	runCompilerTests(t, tests)
 }
 
+func TestStringExpressions(t *testing.T){
+	tests:= []testCompilerStructs{
+		{`"monkey"`, []interface{}{"monkey"}, []code.Instructions{code.Make(code.OpConstant, 0), code.Make(code.OpPop)}},
+		{`"mon" + "key"`, []interface{}{"mon","key"}, []code.Instructions{code.Make(code.OpConstant, 0), code.Make(code.OpConstant,1),code.Make(code.OpAdd), code.Make(code.OpPop)}},
+	}
+
+	runCompilerTests(t, tests)
+}
+
 func runCompilerTests(t *testing.T, tests []testCompilerStructs){
 	t.Helper()
 
@@ -130,6 +139,11 @@ func testConstants(actual []object.Object, expected []interface{}) error{
 			if err != nil{
 				return fmt.Errorf("constant at index %d, expected=%d, got=%s", i, constant, err)	
 			}
+		case string:
+			err := testStringObject(constant, actual[i])
+			if err != nil{
+				return fmt.Errorf("constant %d - testStringObject failed: %s", i, err)
+			}
 		}
 	}
 
@@ -157,5 +171,17 @@ func testIntegerObject(expected int64, actual object.Object) error{
 		return fmt.Errorf("object has wrong value, expected=%d, got=%d", expected, result.Value)
 	}
 
+	return nil
+}
+
+func testStringObject(expected string, actual object.Object) error{
+	result, ok := actual.(*object.String)
+	if !ok{
+		return fmt.Errorf("the error is not a string, got=%T", actual)
+	}
+
+	if result.Value != expected{
+		return fmt.Errorf("object has the wrong value, expected=%s, got=%s", expected, result.Value)
+	}
 	return nil
 }

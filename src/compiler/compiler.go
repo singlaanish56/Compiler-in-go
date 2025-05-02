@@ -36,6 +36,13 @@ func New() *Compiler{
 	}
 }
 
+func NewWithState(s *SymbolTable, constants []object.Object) *Compiler{
+	compiler := New()
+	compiler.symbolTable=s;
+	compiler.constants=constants
+	return compiler
+}
+
 func (c *Compiler) Compile(node ast.ASTNode) error{
 	switch node := node.(type){
 	case *ast.AstRootNode:
@@ -165,6 +172,9 @@ func (c *Compiler) Compile(node ast.ASTNode) error{
 		}else{
 			c.emit(code.OpFalse)
 		}
+	case *ast.StringLiteral:
+		str := &object.String{node.Value}
+		c.emit(code.OpConstant, c.addConstant(str))
 	}
 
 	return nil

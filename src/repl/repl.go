@@ -7,6 +7,7 @@ import (
 
 	"github.com/singlaanish56/Compiler-in-go/compiler"
 	"github.com/singlaanish56/Compiler-in-go/lexer"
+	"github.com/singlaanish56/Compiler-in-go/object"
 	"github.com/singlaanish56/Compiler-in-go/parser"
 	"github.com/singlaanish56/Compiler-in-go/vm"
 )
@@ -14,6 +15,9 @@ import (
 const PROMPT =">> "
 func Start(in io.Reader, out io.Writer){
 	scanner := bufio.NewScanner(in)
+	constants := []object.Object{}
+	globalStore := make([]object.Object, vm.GlobalSize)
+	symbolTable := compiler.NewSymbolTable()
 
 	for{
 		fmt.Fprintf(out, PROMPT)
@@ -32,14 +36,17 @@ func Start(in io.Reader, out io.Writer){
 			continue
 		}
 
-		compiler := compiler.New()
+		compiler := compiler.NewWithState(symbolTable, constants)
 		err := compiler.Compile(program)
 		if err != nil{
 			fmt.Fprintf(out, "Woops, Compiler failed:\n %s\n", err)
 			continue
 		}
 
-		vmMachine := vm.New(compiler.Bytecode())
+		bytecode := compiler.Bytecode()
+		constants = bytecode.Constants
+
+		vmMachine := vm.NewWithGlobalStore(bytecode, globalStore)
 		err = vmMachine.Run()
 		if err != nil{
 			fmt.Fprintf(out, "Woops, VM failed:\n %s\n", err)

@@ -101,7 +101,7 @@ func (l *Lexer) retrieveTheString() token.Token{
 func (l *Lexer) retrieveTheVariable() token.Token{
 	start := l.currentPosition
 
-	for (l.char>='a' && l.char<='z') || (l.char>='A' && l.char<='Z'){
+	for (l.char>='0' && l.char<='9') || (l.char>='a' && l.char<='z') || (l.char>='A' && l.char<='Z'){
 		l.nextChar()
 	}
 

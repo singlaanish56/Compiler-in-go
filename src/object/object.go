@@ -15,6 +15,7 @@ const (
 	BOOLEAN_OBJ = "BOOLEAN"
 	NULL_OBJ = "NULL"
 	STRING_OBJ="STRING"
+	ARRAY_OBJ="ARRAY"
 )
 
 type Integer struct{
@@ -41,3 +42,18 @@ type String struct{
 
 func (s *String) Type() ObjectType{ return STRING_OBJ}
 func (s *String) Inspect() string {return s.Value}
+
+type Array struct{
+	Elements []Object
+}
+func (a *Array) Type() ObjectType{ return ARRAY_OBJ }
+func (a *Array) Inspect() string{
+	var out string
+	for i, element := range a.Elements{
+		out += element.Inspect()
+		if i != len(a.Elements)-1{
+			out += ", "
+		}
+	}
+	return "[" + out + "]"
+}

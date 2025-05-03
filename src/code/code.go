@@ -131,6 +131,7 @@ var definitions = map[Opcode] *Definition{
 	OpGetGlobal: {"OpGetGlobal", []int{2}},
 	OpArray:{"OpArray",[]int{2}},
 	OpHash:{"OpHash",[]int{2}},
+	OpIndex:{"OpIndex",[]int{}},
 }
 
 const (
@@ -155,4 +156,5 @@ const (
 	OpGetGlobal
 	OpArray
 	OpHash
+	OpIndex
 )

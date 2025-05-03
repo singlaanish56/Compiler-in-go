@@ -125,7 +125,30 @@ func (vm *VM) Run() error{
 			if err != nil{
 				return err
 			}
-		case code.OpPop:
+		case code.OpHash:
+			numOfElements := int(code.ReadUint16(vm.instructions[i+1:]))
+			i+=2
+
+			hash, err := vm.buildHash(vm.stackPointer-numOfElements, vm.stackPointer)
+			if err !=nil{
+				return err
+			}
+
+			vm.stackPointer-=numOfElements
+
+			err = vm.push(hash)
+			if err != nil{
+				return err
+			}
+		case code.OpIndex:
+			index:= vm.pop()
+			objectToBeIndexed := vm.pop()
+
+			err:= vm.executeIndexExpression(objectToBeIndexed, index)
+			if err != nil{
+				return err
+			}
+ 		case code.OpPop:
 			vm.pop()
 		}
 	}
@@ -268,6 +291,77 @@ func (vm *VM) buildArray(startIndex, endIndex int) *object.Array{
 
 	return &object.Array{Elements: elements}
 }
+
+func (vm *VM) buildHash(startIndex, endIndex int) (object.Object, error){
+	hashedPairs := make(map[object.HashKey]object.HashPair)
+
+	for i:=startIndex;i<endIndex;i+=2{
+		key := vm.stack[i]
+		value := vm.stack[i+1]
+
+		pair := object.HashPair{Key: key, Value: value}
+
+		hashKey, ok := key.(object.Hashable)
+		if !ok{
+			return nil, fmt.Errorf("unhashable type %s", key.Type())
+		}
+
+		hashedPairs[hashKey.HashKey()] = pair
+	}
+
+	return &object.Hash{Pairs: hashedPairs}, nil
+}
+
+func (vm *VM) executeIndexExpression(objectToBeIndexed, index object.Object) error{
+	switch{
+		case objectToBeIndexed.Type() == object.ARRAY_OBJ && index.Type() == object.INTEGER_OBJ:
+			return vm.executeArrayIndex(objectToBeIndexed, index)
+		case objectToBeIndexed.Type() == object.HASHPAIR_OBJ:
+			return vm.executeHashIndex(objectToBeIndexed, index)
+		default:
+			return fmt.Errorf("index operator not supported: %s %s", objectToBeIndexed.Type(), index.Type())
+	}
+}
+
+func (vm *VM) executeArrayIndex(array, index object.Object) error{
+	arrayObject, ok := array.(*object.Array)
+	if !ok{
+		return fmt.Errorf("object is not an array, got=%T", array)
+	}
+
+	indexObject, ok := index.(*object.Integer)
+	if !ok{
+		return fmt.Errorf("object is not an integer, got=%T", index)
+	}
+
+	i:= indexObject.Value
+	maxIndex := int64(len(arrayObject.Elements))
+	if i<0 || i>=maxIndex{
+		return vm.push(Null)
+	}
+
+	return vm.push(arrayObject.Elements[i])
+}
+
+func (vm *VM) executeHashIndex(hash, index object.Object) error{
+	hashObject, ok := hash.(*object.Hash)
+	if !ok{
+		return fmt.Errorf("object is not a hash, got=%T", hash)
+	}
+
+	hashKey, ok := index.(object.Hashable)
+	if !ok{
+		return fmt.Errorf("unhashable type %s", index.Type())
+	}
+
+	pair, ok := hashObject.Pairs[hashKey.HashKey()]
+	if !ok{
+		return vm.push(Null)
+	}
+
+	return vm.push(pair.Value)
+}
+
 func toBooleanObject(val bool) *object.Boolean{
 	if val{
 		 return True

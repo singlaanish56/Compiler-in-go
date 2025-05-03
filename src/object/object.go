@@ -1,6 +1,9 @@
 package object
 
-import "fmt"
+import (
+	"fmt"
+	"hash/fnv"
+)
 
 
 type ObjectType string
@@ -16,7 +19,22 @@ const (
 	NULL_OBJ = "NULL"
 	STRING_OBJ="STRING"
 	ARRAY_OBJ="ARRAY"
+	HASHPAIR_OBJ="HASHPAIR"
 )
+
+type HashKey struct{
+	Type ObjectType
+	Value uint64
+}
+
+type Hashable interface{
+	HashKey() HashKey
+}
+
+type HashPair struct{
+	Key Object
+	Value Object
+}
 
 type Integer struct{
 	Value int64
@@ -24,13 +42,23 @@ type Integer struct{
 
 func (i *Integer) Type() ObjectType{ return INTEGER_OBJ }
 func (i *Integer) Inspect() string{ return fmt.Sprintf("%d", i.Value)}
+func (i *Integer) HashKey() HashKey{
+	return HashKey{Type: i.Type(), Value: uint64(i.Value)}
+}
 
 type Boolean struct{
 	Value bool
 }
 
-func (i *Boolean) Type() ObjectType{ return BOOLEAN_OBJ }
-func (i *Boolean) Inspect() string{ return fmt.Sprintf("%d", i.Value)}
+func (b *Boolean) Type() ObjectType{ return BOOLEAN_OBJ }
+func (b *Boolean) Inspect() string{ return fmt.Sprintf("%d", b.Value)}
+func (b *Boolean) HashKey() HashKey{
+	if b.Value{
+		return HashKey{Type: b.Type(), Value: uint64(1)}
+	}
+
+	return HashKey{Type: b.Type(), Value: uint64(0)}
+}	
 
 type Null struct{}
 func (n *Null) Type() ObjectType{ return NULL_OBJ }
@@ -42,6 +70,12 @@ type String struct{
 
 func (s *String) Type() ObjectType{ return STRING_OBJ}
 func (s *String) Inspect() string {return s.Value}
+func (s *String) HashKey() HashKey{
+	h := fnv.New64a()
+	h.Write([]byte(s.Value))
+
+	return HashKey{Type: s.Type(), Value: h.Sum64()}
+}
 
 type Array struct{
 	Elements []Object
@@ -56,4 +90,17 @@ func (a *Array) Inspect() string{
 		}
 	}
 	return "[" + out + "]"
+}
+
+type Hash struct{
+	Pairs map[HashKey]HashPair
+}
+
+func (h *Hash) Type() ObjectType{ return HASHPAIR_OBJ }
+func (h *Hash) Inspect() string{
+	var out string
+	for _, pair := range h.Pairs{
+		out += pair.Key.Inspect() + ": " + pair.Value.Inspect()
+	}
+	return "{" + out + "}"
 }

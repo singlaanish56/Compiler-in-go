@@ -132,6 +132,9 @@ var definitions = map[Opcode] *Definition{
 	OpArray:{"OpArray",[]int{2}},
 	OpHash:{"OpHash",[]int{2}},
 	OpIndex:{"OpIndex",[]int{}},
+	OpCall:{"OpCall", []int{}},
+	OpReturnValue:{"OpReturnValue", []int{}},
+	OpReturn:{"OpReturn", []int{}},
 }
 
 const (
@@ -157,4 +160,7 @@ const (
 	OpArray
 	OpHash
 	OpIndex
+	OpCall //function call
+	OpReturnValue //return a value from a function
+	OpReturn //function has nothing to return
 )

@@ -3,6 +3,8 @@ package object
 import (
 	"fmt"
 	"hash/fnv"
+
+	"github.com/singlaanish56/Compiler-in-go/code"
 )
 
 
@@ -20,6 +22,7 @@ const (
 	STRING_OBJ="STRING"
 	ARRAY_OBJ="ARRAY"
 	HASHPAIR_OBJ="HASHPAIR"
+	COMPILE_FUNCTION_OBJ="COMPILE_FUNCTION"
 )
 
 type HashKey struct{
@@ -104,3 +107,10 @@ func (h *Hash) Inspect() string{
 	}
 	return "{" + out + "}"
 }
+
+type CompiledFunction struct{
+	Instructions code.Instructions
+}
+
+func (cf *CompiledFunction) Type() ObjectType{ return COMPILE_FUNCTION_OBJ }
+func (cf *CompiledFunction) Inspect() string{ return fmt.Sprintf("CompiledFunction[%p]",cf) }

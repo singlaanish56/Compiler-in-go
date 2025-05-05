@@ -77,20 +77,19 @@ func (c *Compiler) Compile(node ast.ASTNode) error{
 				return err
 			}
 		}
-	case *ast.ArrayLiteral:
-		for _, element := range node.Elements{
-			err := c.Compile(element)
-			if err != nil{
-				return err
-			}
-		}
-		c.emit(code.OpArray, len(node.Elements))
 	case *ast.ExpressionStatement:
 		err := c.Compile(node.Expression)
 		if err != nil{
 			return err
 		}
 		c.emit(code.OpPop)
+	case *ast.ReturnStatement:
+		err := c.Compile(node.Value)
+		if err != nil{
+			return err
+		}
+
+		c.emit(code.OpReturnValue)
 	case *ast.IfExpression:
 		err := c.Compile(node.Condition)
 		if err != nil{
@@ -130,7 +129,6 @@ func (c *Compiler) Compile(node ast.ASTNode) error{
 
 		alternativePos := len(c.currentInstructions())
 		c.changeOperand(jumpPos, alternativePos)
-
 	case *ast.PrefixExpression:
 		err := c.Compile(node.Right)
 		if err!=nil{
@@ -176,6 +174,39 @@ func (c *Compiler) Compile(node ast.ASTNode) error{
 		default:
 			return fmt.Errorf("unknown operator %s", node.Operator)
 		}
+	case *ast.IndexExpression:
+		err := c.Compile(node.Left)
+		if err !=nil{
+			return err
+		}
+
+		err = c.Compile(node.Index)
+		if err != nil{
+			return err
+		}
+
+		c.emit(code.OpIndex)
+	case *ast.FunctionExpression:
+		c.enterScope()
+
+		err := c.Compile(node.Body)
+		if err != nil{
+			return err
+		}
+
+		if c.lastInstructionIs(code.OpPop){
+			c.replaceLastPopWithReturn()
+		}
+
+		if !c.lastInstructionIs(code.OpReturnValue){
+			c.emit(code.OpReturn)
+		}
+		
+		instructions := c.leaveScope()
+		compiledFn := &object.CompiledFunction{
+			Instructions: instructions,
+		}
+		c.emit(code.OpConstant, c.addConstant(compiledFn))
 	case *ast.Variable:
 		symbol, ok := c.symbolTable.Resolve(node.Value)
 		if !ok{
@@ -218,18 +249,14 @@ func (c *Compiler) Compile(node ast.ASTNode) error{
 		}
 
 		c.emit(code.OpHash, len(node.Pairs)*2)
-	case *ast.IndexExpression:
-		err := c.Compile(node.Left)
-		if err !=nil{
-			return err
+	case *ast.ArrayLiteral:
+		for _, element := range node.Elements{
+			err := c.Compile(element)
+			if err != nil{
+				return err
+			}
 		}
-
-		err = c.Compile(node.Index)
-		if err != nil{
-			return err
-		}
-
-		c.emit(code.OpIndex)
+		c.emit(code.OpArray, len(node.Elements))
 	}
 
 	return nil
@@ -279,6 +306,10 @@ func (c *Compiler) setLastInstruction(op code.Opcode, pos int){
 }
 
 func (c *Compiler) lastInstructionIs(op code.Opcode) bool{
+	if len(c.currentInstructions()) ==0{
+		return false
+	}
+
 	return c.compilerScopes[c.scopeIndex].lastInstruction.Opcode == op
 }
 
@@ -291,6 +322,13 @@ func (c *Compiler) removeLastPop(){
 	
 	c.compilerScopes[c.scopeIndex].instructions = new
 	c.compilerScopes[c.scopeIndex].lastInstruction = prev
+}
+
+func (c *Compiler) replaceLastPopWithReturn(){
+	lastPos := c.compilerScopes[c.scopeIndex].lastInstruction.Position
+	c.replaceInstruction(lastPos, code.Make(code.OpReturnValue))
+
+	c.compilerScopes[c.scopeIndex].lastInstruction.Opcode = code.OpReturnValue
 }
 
 func (c *Compiler) changeOperand(operationPosition, operand int){

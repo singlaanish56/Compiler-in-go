@@ -201,12 +201,19 @@ func (c *Compiler) Compile(node ast.ASTNode) error{
 		if !c.lastInstructionIs(code.OpReturnValue){
 			c.emit(code.OpReturn)
 		}
-		
+
 		instructions := c.leaveScope()
 		compiledFn := &object.CompiledFunction{
 			Instructions: instructions,
 		}
 		c.emit(code.OpConstant, c.addConstant(compiledFn))
+	case *ast.CallExpression:
+		err := c.Compile(node.Function)
+		if err != nil{
+			return err
+		}
+
+		c.emit(code.OpCall)
 	case *ast.Variable:
 		symbol, ok := c.symbolTable.Resolve(node.Value)
 		if !ok{

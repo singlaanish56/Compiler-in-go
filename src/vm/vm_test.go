@@ -267,3 +267,19 @@ func TestIndexExpressions(t *testing.T){
 
 	runVmTests(t, tests)
 }
+
+func TestFunctions(t *testing.T){
+	tests := []vmTestCase{
+		{`let fivePlusTen = fn(){5+10;}; fivePlusTen();`, 15},
+		{`let one = fn(){1;}; let two=fn(){2;}; one() + two()`, 3},
+		{`let a = fn(){1}; let b=fn(){a()+1}; let c=fn(){b()+1}; c();`, 3},
+		{`let a = fn(){return 99; 100;}; a();`, 99},
+		{`let a = fn(){return 99; return 100;}; a();`, 99},
+		{`let a = fn(){}; a();`, Null},
+		{`let a = fn(){}; let b = fn(){a();}; a(); b();`, Null},
+		{`let a = fn(){1;}; let b = fn(){a;}; b()();`, 1},
+	}
+
+
+	runVmTests(t, tests)
+}

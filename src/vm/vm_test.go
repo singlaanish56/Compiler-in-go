@@ -278,8 +278,11 @@ func TestFunctions(t *testing.T){
 		{`let a = fn(){}; a();`, Null},
 		{`let a = fn(){}; let b = fn(){a();}; a(); b();`, Null},
 		{`let a = fn(){1;}; let b = fn(){a;}; b()();`, 1},
+		{`let a = fn(){let one =1;one}; a();`, 1},
+		{`let a = fn(){let one =1; let two=2; one+two}; a();`, 3},
+		{`let a = fn(){let one =1; let two=2; one+two}; let b =fn(){let one=3; let two=4; one+two}; a() + b();`, 10},
+		{`let global=50;let minus= fn(){let num=1; global-num;}; let plus=fn(){let num=1; global+num;}; minus() + plus();`, 50},
 	}
-
 
 	runVmTests(t, tests)
 }

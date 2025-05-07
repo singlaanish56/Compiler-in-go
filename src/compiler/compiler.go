@@ -69,7 +69,11 @@ func (c *Compiler) Compile(node ast.ASTNode) error{
 			return err
 		}
 		symbol := c.symbolTable.Define(node.Variable.Value)
-		c.emit(code.OpSetGlobal, symbol.Position)
+		if symbol.Scope == GlobalScope{
+			c.emit(code.OpSetGlobal, symbol.Position)
+		}else{
+			c.emit(code.OpSetLocal, symbol.Position)
+		}
 	case *ast.BlockStatement:
 		for _,s := range node.Statements{
 			err := c.Compile(s)
@@ -219,7 +223,11 @@ func (c *Compiler) Compile(node ast.ASTNode) error{
 		if !ok{
 			return fmt.Errorf("undefined variable %s", node.Value)
 		}
-		c.emit(code.OpGetGlobal, symbol.Position)
+		if symbol.Scope == GlobalScope{
+			c.emit(code.OpGetGlobal, symbol.Position)
+		}else{
+			c.emit(code.OpGetLocal, symbol.Position)
+		}
 	case *ast.IntegerLiteral:
 		integerObject := &object.Integer{Value: node.Value}
 		c.emit(code.OpConstant, c.addConstant(integerObject))
@@ -360,6 +368,7 @@ func (c *Compiler) enterScope(){
 	}
 
 	c.compilerScopes = append(c.compilerScopes, newScope)
+	c.symbolTable = NewEnclosedSymbolTable(c.symbolTable)
 	c.scopeIndex++
 }
 
@@ -368,6 +377,6 @@ func(c *Compiler) leaveScope() code.Instructions{
 
 	c.compilerScopes = c.compilerScopes[:len(c.compilerScopes)-1]
 	c.scopeIndex--
-
+	c.symbolTable = c.symbolTable.Outer
 	return curr
 }

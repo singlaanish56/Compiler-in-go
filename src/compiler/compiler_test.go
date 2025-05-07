@@ -180,7 +180,7 @@ func TestCompilerScopes(t *testing.T){
 	if compiler.scopeIndex != 0{
 		t.Errorf("scopeIndex wrong, expected=0, got=%d", compiler.scopeIndex)
 	}
-
+	globalSymbolTable  := compiler.symbolTable
 	compiler.emit(code.OpMul)
 
 	compiler.enterScope()
@@ -200,10 +200,21 @@ func TestCompilerScopes(t *testing.T){
 		t.Errorf("last instruction wrong, expected=%d, got=%d", code.OpAdd, last.Opcode)
 	}
 
+	if compiler.symbolTable.Outer != globalSymbolTable{
+		t.Errorf("compiler doesnt include the enclose symbopl table")
+	}
+
 	compiler.leaveScope()
 
 	if compiler.scopeIndex != 0{
 		t.Errorf("scopeIndex wrong, expected=0, got=%d", compiler.scopeIndex)
+	}
+
+	if compiler.symbolTable != globalSymbolTable{
+		t.Errorf("compiler doesnt include the global symbol table")
+	}
+	if compiler.symbolTable.Outer != nil{
+		t.Errorf("compiler symbol table should not have outer symbol table")
 	}
 
 	compiler.emit(code.OpSub)
@@ -262,6 +273,27 @@ tests := []testCompilerStructs{
 
 runCompilerTests(t, tests)
 }
+
+func TestLetStatementScopes(t *testing.T){
+	tests := []testCompilerStructs{
+		{`let num=55; fn(){num}`, 
+		[]interface{}{55, []code.Instructions{code.Make(code.OpGetGlobal, 0), code.Make(code.OpReturnValue)}},
+		[]code.Instructions{code.Make(code.OpConstant, 0), code.Make(code.OpSetGlobal, 0), code.Make(code.OpConstant, 1), code.Make(code.OpPop)},
+		},
+		{`fn(){let num=55;  num}`, 
+		[]interface{}{55, []code.Instructions{code.Make(code.OpConstant, 0), code.Make(code.OpSetLocal, 0), code.Make(code.OpGetLocal, 0), code.Make(code.OpReturnValue)}},
+		[]code.Instructions{code.Make(code.OpConstant, 1), code.Make(code.OpPop)},
+		},
+		{`fn(){let a=55;let b= 77;  a+b}`, 
+		[]interface{}{55,77, []code.Instructions{code.Make(code.OpConstant, 0), code.Make(code.OpSetLocal, 0),code.Make(code.OpConstant, 1), code.Make(code.OpSetLocal, 1), code.Make(code.OpGetLocal, 0), code.Make(code.OpGetLocal, 1), code.Make(code.OpAdd), code.Make(code.OpReturnValue)}},
+		[]code.Instructions{code.Make(code.OpConstant, 2), code.Make(code.OpPop)},
+		},
+	}
+
+	runCompilerTests(t, tests)
+}
+
+
 
 func runCompilerTests(t *testing.T, tests []testCompilerStructs){
 	t.Helper()

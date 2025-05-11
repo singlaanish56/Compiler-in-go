@@ -42,7 +42,7 @@ func TestBooleanArithmetic(t *testing.T){
 		{"1!=2", []interface{}{1, 2}, []code.Instructions{code.Make(code.OpConstant, 0), code.Make(code.OpConstant, 1), code.Make(code.OpNotEqual), code.Make(code.OpPop)}},
 		{"true==false", []interface{}{}, []code.Instructions{code.Make(code.OpTrue), code.Make(code.OpFalse), code.Make(code.OpEqual), code.Make(code.OpPop)}},
 		{"true!=false", []interface{}{}, []code.Instructions{code.Make(code.OpTrue), code.Make(code.OpFalse), code.Make(code.OpNotEqual), code.Make(code.OpPop)}},
-		{"!true", []interface{}{1}, []code.Instructions{code.Make(code.OpTrue),code.Make(code.OpBang), code.Make(code.OpPop)}},
+		{"!true", []interface{}{}, []code.Instructions{code.Make(code.OpTrue),code.Make(code.OpBang), code.Make(code.OpPop)}},
 	}
 
 	runCompilerTests(t, tests)
@@ -247,7 +247,7 @@ tests := []testCompilerStructs{
 	},
 	[]code.Instructions{
 		code.Make(code.OpConstant, 1),
-		code.Make(code.OpCall),
+		code.Make(code.OpCall,0),
 		code.Make(code.OpPop),
 	},
 },
@@ -265,7 +265,51 @@ tests := []testCompilerStructs{
 		code.Make(code.OpConstant, 1),
 		code.Make(code.OpSetGlobal, 0),
 		code.Make(code.OpGetGlobal, 0),
-		code.Make(code.OpCall),
+		code.Make(code.OpCall,0),
+		code.Make(code.OpPop),
+	},
+},
+{
+	`let oneArg = fn(a){a}; oneArg(24);`,
+	[]interface{}{
+		[]code.Instructions{
+			code.Make(code.OpGetLocal, 0),
+			code.Make(code.OpReturnValue),
+		},
+		24,
+	},
+	[]code.Instructions{
+		code.Make(code.OpConstant, 0),
+		code.Make(code.OpSetGlobal, 0),
+		code.Make(code.OpGetGlobal, 0),
+		code.Make(code.OpConstant, 1),
+		code.Make(code.OpCall, 1),
+		code.Make(code.OpPop),
+	},
+},
+{
+	`let manyArg = fn(a, b, c){a; b; c;}; manyArg(24, 48 , 36);`,
+	[]interface{}{
+		[]code.Instructions{
+			code.Make(code.OpGetLocal, 0),
+			code.Make(code.OpPop),
+			code.Make(code.OpGetLocal, 1),
+			code.Make(code.OpPop),
+			code.Make(code.OpGetLocal, 2),
+			code.Make(code.OpReturnValue),
+		},
+		24,
+		48,
+		36,
+	},
+	[]code.Instructions{
+		code.Make(code.OpConstant, 0),
+		code.Make(code.OpSetGlobal, 0),
+		code.Make(code.OpGetGlobal, 0),
+		code.Make(code.OpConstant, 1),
+		code.Make(code.OpConstant, 2),
+		code.Make(code.OpConstant, 3),
+		code.Make(code.OpCall, 3),
 		code.Make(code.OpPop),
 	},
 },

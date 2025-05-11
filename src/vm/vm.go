@@ -197,6 +197,7 @@ func (vm *VM) Run() error{
 				return err
 			}
 		case code.OpCall:
+			vm.currentFrame().ip+=1
 			fn, ok := vm.stack[vm.stackPointer-1].(*object.CompiledFunction)
 			if !ok{
 				return fmt.Errorf("object is not a function, got=%T", vm.stack[vm.stackPointer-1])

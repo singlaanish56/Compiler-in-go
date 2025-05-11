@@ -205,10 +205,11 @@ func (c *Compiler) Compile(node ast.ASTNode) error{
 		if !c.lastInstructionIs(code.OpReturnValue){
 			c.emit(code.OpReturn)
 		}
-
+		numLocals := c.symbolTable.numDefinitions
 		instructions := c.leaveScope()
 		compiledFn := &object.CompiledFunction{
 			Instructions: instructions,
+			NumberOfLocals: numLocals,
 		}
 		c.emit(code.OpConstant, c.addConstant(compiledFn))
 	case *ast.CallExpression:

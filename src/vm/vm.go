@@ -18,10 +18,11 @@ var Null = &object.Null{}
 type Frame struct{
 	fn *object.CompiledFunction
 	ip int
+	framePointer int
 }
 
-func NewFrame(fn * object.CompiledFunction) *Frame{
-	return &Frame{fn, -1}
+func NewFrame(fn * object.CompiledFunction, framePointer int) *Frame{
+	return &Frame{fn, -1, framePointer}
 }
 
 func (f *Frame) Instructions() code.Instructions{
@@ -41,8 +42,8 @@ type VM struct{
 }
 
 func New(bytecode *compiler.Bytecode) *VM{
-	mainFn := &object.CompiledFunction{bytecode.Instructions}
-	mainFrame := NewFrame(mainFn)
+	mainFn := &object.CompiledFunction{Instructions : bytecode.Instructions}
+	mainFrame := NewFrame(mainFn, 0)
 	frames := make([]*Frame, MaxFrames)
 	frames[0]=mainFrame
 
@@ -136,10 +137,24 @@ func (vm *VM) Run() error{
 			globalIndex := code.ReadUint16(ins[i+1:])
 			vm.currentFrame().ip+=2
 			vm.globalStore[globalIndex]=vm.pop()
+		case code.OpSetLocal:
+			localIndex := int(code.ReadUint8(ins[i+1:]))
+			vm.currentFrame().ip+=1
+
+			frame:= vm.currentFrame()
+			vm.stack[frame.framePointer+localIndex] = vm.pop()
 		case code.OpGetGlobal:
 			globalIndex := code.ReadUint16(ins[i+1:])
 			vm.currentFrame().ip+=2
 			err := vm.push(vm.globalStore[globalIndex])
+			if err != nil{
+				return err
+			}
+		case code.OpGetLocal:
+			localIndex:= int(code.ReadUint8(ins[i+1:]))
+			vm.currentFrame().ip+=1
+			frame := vm.currentFrame()
+			err := vm.push(vm.stack[frame.framePointer+localIndex])
 			if err != nil{
 				return err
 			}
@@ -186,21 +201,22 @@ func (vm *VM) Run() error{
 			if !ok{
 				return fmt.Errorf("object is not a function, got=%T", vm.stack[vm.stackPointer-1])
 			}
-			frame := NewFrame(fn)
+			frame := NewFrame(fn, vm.stackPointer)
 			vm.pushFrame(frame)
+			vm.stackPointer =frame.framePointer+fn.NumberOfLocals
 		case code.OpReturnValue:
 			returnValue := vm.pop()
 
-			vm.popFrame()
-			vm.pop()
+			frame := vm.popFrame()
+			vm.stackPointer = frame.framePointer-1
 
 			err := vm.push(returnValue)
 			if err != nil{
 				return err
 			}
 		case code.OpReturn:
-			vm.popFrame()
-			vm.pop()
+			frame := vm.popFrame()
+			vm.stackPointer = frame.framePointer-1
 
 			err := vm.push(Null)
 			if err != nil{

@@ -110,6 +110,7 @@ func (h *Hash) Inspect() string{
 
 type CompiledFunction struct{
 	Instructions code.Instructions
+	NumberOfLocals int
 }
 
 func (cf *CompiledFunction) Type() ObjectType{ return COMPILE_FUNCTION_OBJ }

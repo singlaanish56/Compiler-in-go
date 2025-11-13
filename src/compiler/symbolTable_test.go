@@ -93,3 +93,34 @@ func TestResolveLocal(t *testing.T) {
 		}
 	}
 }
+
+func TestDefineResolveWithBuiltins(t *testing.T) {
+	global := NewSymbolTable()
+	firstLocal := NewEnclosedSymbolTable(global)
+	secondLocal := NewEnclosedSymbolTable(firstLocal)
+
+	expected := []Symbol{
+		Symbol{"a", BuiltinScope, 0},
+		Symbol{"c", BuiltinScope, 1},
+		Symbol{"e", BuiltinScope, 2},
+		Symbol{"f", BuiltinScope, 3},
+	}
+
+	for i, v := range expected {
+		global.DefineBuiltin(i, v.Name)
+	}
+
+	for _, table := range []*SymbolTable{global, firstLocal, secondLocal} {
+		for _, got := range expected {
+			result, ok := table.Resolve(got.Name)
+			if !ok {
+				t.Errorf("name %s is not found in the symbol table", got.Name)
+				continue
+			}
+			if result != got {
+				t.Errorf("expected %s to resolve to %+v, got=%+v", got.Name, got, result)
+			}
+
+		}
+	}
+}

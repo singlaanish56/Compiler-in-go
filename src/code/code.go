@@ -7,34 +7,41 @@ import (
 )
 
 type Instructions []byte
-func (ins Instructions) String() string{
+type Opcode byte
+
+type Definition struct {
+	Name          string
+	OperandWidths []int
+}
+
+func (ins Instructions) String() string {
 	var out bytes.Buffer
 
 	i := 0
-	for i< len(ins){
+	for i < len(ins) {
 		def, err := Lookup(ins[i])
-		if err != nil{
+		if err != nil {
 			fmt.Fprintf(&out, "ERROR: %s\n", err)
 			continue
 		}
 
-		operands , bytesRead := ReadOperands(def, ins[i+1:])
-		
-		fmt.Fprintf(&out , "%04d %s\n\t", i, ins.instructionToFmt(def, operands))
+		operands, bytesRead := ReadOperands(def, ins[i+1:])
 
-		i += 1+ bytesRead
+		fmt.Fprintf(&out, "%04d %s\n\t", i, ins.instructionToFmt(def, operands))
+
+		i += 1 + bytesRead
 	}
 
 	return out.String()
 }
 
-func (ins Instructions) instructionToFmt(def *Definition, operands []int) string{
+func (ins Instructions) instructionToFmt(def *Definition, operands []int) string {
 	operandsExpectedLen := len(def.OperandWidths)
-	if len(operands) != operandsExpectedLen{
+	if len(operands) != operandsExpectedLen {
 		return fmt.Sprintf("ERROR: wrong number of operands. expected=%d, got=%d", operandsExpectedLen, len(operands))
 	}
 
-	switch operandsExpectedLen{
+	switch operandsExpectedLen {
 	case 0:
 		return def.Name
 	case 1:
@@ -44,51 +51,42 @@ func (ins Instructions) instructionToFmt(def *Definition, operands []int) string
 	return fmt.Sprintf("ERROR: unhandled operandCount for %s\n", def.Name)
 }
 
-type Opcode byte
-
-
-
-type Definition struct{
-	Name string
-	OperandWidths []int
-}
-
-func Make(op Opcode, operands...int) []byte{
+func Make(op Opcode, operands ...int) []byte {
 	def, ok := definitions[op]
-	if !ok{
+	if !ok {
 		return []byte{}
 	}
 
-	instructionLen:=1
-	for _, w := range def.OperandWidths{
-		instructionLen+=w
+	instructionLen := 1
+	for _, w := range def.OperandWidths {
+		instructionLen += w
 	}
 
 	instruction := make([]byte, instructionLen)
-	instruction[0]=byte(op)
+	instruction[0] = byte(op)
 
-	offset :=1
-	for i,o := range operands{
+	offset := 1
+	for i, o := range operands {
 		width := def.OperandWidths[i]
-		switch width{
+		switch width {
 		case 2:
 			binary.BigEndian.PutUint16(instruction[offset:], uint16(o))
 		case 1:
 			instruction[offset] = byte(o)
 		}
-		offset +=width
+		offset += width
 
 	}
 
 	return instruction
 }
 
-func ReadOperands(definition *Definition, ins Instructions) ([]int ,int){
+func ReadOperands(definition *Definition, ins Instructions) ([]int, int) {
 	operands := make([]int, len(definition.OperandWidths))
-	offset:=0
-	for i, width := range definition.OperandWidths{
-		switch width{
-		case 2 :
+	offset := 0
+	for i, width := range definition.OperandWidths {
+		switch width {
+		case 2:
 			operands[i] = int(ReadUint16(ins[offset:]))
 		case 1:
 			operands[i] = int(ReadUint8(ins[offset:]))
@@ -100,51 +98,12 @@ func ReadOperands(definition *Definition, ins Instructions) ([]int ,int){
 	return operands, offset
 }
 
-func ReadUint16(ins Instructions) uint16{
+func ReadUint16(ins Instructions) uint16 {
 	return binary.BigEndian.Uint16(ins)
 }
 
-func ReadUint8(ins Instructions) uint8{
+func ReadUint8(ins Instructions) uint8 {
 	return uint8(ins[0])
-}
-
-func Lookup(op byte) (*Definition, error){
-	def , ok := definitions[Opcode(op)]
-	if !ok{
-		return nil, fmt.Errorf("opcode is undefined %d", op)
-	}
-
-	return def, nil
-}
-
-var definitions = map[Opcode] *Definition{
-	OpConstant : {"OpConstant", []int{2}},
-	OpAdd : {"OpAdd", []int{}},
-	OpPop : {"OpPop", []int{}},
-	OpSub : {"OpSub", []int{}},
-	OpMul : {"OpMul", []int{}},
-	OpDiv : {"OpDiv", []int{}},
-	OpTrue : {"OpTrue", []int{}},
-	OpFalse : {"OpFalse", []int{}},
-	OpEqual : {"OpEqual", []int{}},
-	OpNotEqual : {"OpNotEqual", []int{}},
-	OpGreaterThan : {"OpGreaterThan", []int{}},
-	OpLessThan : {"OpLessThan", []int{}},
-	OpMinus : {"OpMinus", []int{}},
-	OpBang : {"OpBang", []int{}},	
-	OpJumpNotTruthy : {"OpJumpNotTruthy", []int{2}},
-	OpJump : {"OpJump", []int{2}},
-	OpNull:{"OpNull", []int{}},
-	OpSetGlobal: {"OpSetGlobal", []int{2}},
-	OpGetGlobal: {"OpGetGlobal", []int{2}},
-	OpArray:{"OpArray",[]int{2}},
-	OpHash:{"OpHash",[]int{2}},
-	OpIndex:{"OpIndex",[]int{}},
-	OpCall:{"OpCall", []int{1}},
-	OpReturnValue:{"OpReturnValue", []int{}},
-	OpReturn:{"OpReturn", []int{}},
-	OpSetLocal:{"OpSetLocal", []int{1}},
-	OpGetLocal:{"OpGetLocal", []int{1}},
 }
 
 const (
@@ -170,9 +129,51 @@ const (
 	OpArray
 	OpHash
 	OpIndex
-	OpCall //function call
+	OpCall        //function call
 	OpReturnValue //return a value from a function
-	OpReturn //function has nothing to return
+	OpReturn      //function has nothing to return
 	OpSetLocal
 	OpGetLocal
+	OpGetBuiltin
 )
+
+// not needed by the compiler, more useful for testing purposes to know how many operands the opcode has
+var definitions = map[Opcode]*Definition{
+	OpConstant:      {"OpConstant", []int{2}},
+	OpAdd:           {"OpAdd", []int{}},
+	OpPop:           {"OpPop", []int{}},
+	OpSub:           {"OpSub", []int{}},
+	OpMul:           {"OpMul", []int{}},
+	OpDiv:           {"OpDiv", []int{}},
+	OpTrue:          {"OpTrue", []int{}},
+	OpFalse:         {"OpFalse", []int{}},
+	OpEqual:         {"OpEqual", []int{}},
+	OpNotEqual:      {"OpNotEqual", []int{}},
+	OpGreaterThan:   {"OpGreaterThan", []int{}},
+	OpLessThan:      {"OpLessThan", []int{}},
+	OpMinus:         {"OpMinus", []int{}},
+	OpBang:          {"OpBang", []int{}},
+	OpJumpNotTruthy: {"OpJumpNotTruthy", []int{2}},
+	OpJump:          {"OpJump", []int{2}},
+	OpNull:          {"OpNull", []int{}},
+	OpSetGlobal:     {"OpSetGlobal", []int{2}},
+	OpGetGlobal:     {"OpGetGlobal", []int{2}},
+	OpArray:         {"OpArray", []int{2}},
+	OpHash:          {"OpHash", []int{2}},
+	OpIndex:         {"OpIndex", []int{}},
+	OpCall:          {"OpCall", []int{1}},
+	OpReturnValue:   {"OpReturnValue", []int{}},
+	OpReturn:        {"OpReturn", []int{}},
+	OpSetLocal:      {"OpSetLocal", []int{1}},
+	OpGetLocal:      {"OpGetLocal", []int{1}},
+	OpGetBuiltin:    {"OpGetBuiltin", []int{1}},
+}
+
+func Lookup(op byte) (*Definition, error) {
+	def, ok := definitions[Opcode(op)]
+	if !ok {
+		return nil, fmt.Errorf("opcode is undefined %d", op)
+	}
+
+	return def, nil
+}

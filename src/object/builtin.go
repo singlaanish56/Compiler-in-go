@@ -63,7 +63,7 @@ var Builtins = []struct {
 				return newError("wrong number of arguments. got=%d, want=1", len(args))
 			}
 			if args[0].Type() != ARRAY_OBJ {
-				return newError("argument to the first should be an array, got %s", args[0].Type())
+				return newError("argument to the last should be an array, got %s", args[0].Type())
 			}
 
 			arg := args[0].(*Array)
@@ -83,7 +83,7 @@ var Builtins = []struct {
 				return newError("wrong number of arguments. got=%d, want=1", len(args))
 			}
 			if args[0].Type() != ARRAY_OBJ {
-				return newError("argument to the first should be an array, got %s", args[0].Type())
+				return newError("argument to the rest should be an array, got %s", args[0].Type())
 			}
 
 			arg := args[0].(*Array)
@@ -105,7 +105,7 @@ var Builtins = []struct {
 				return newError("wrong number of arguments. got=%d, want=2", len(args))
 			}
 			if args[0].Type() != ARRAY_OBJ {
-				return newError("argument to the first should be an array, got %s", args[0].Type())
+				return newError("argument to the push should be an array, got %s", args[0].Type())
 			}
 
 			arg := args[0].(*Array)
@@ -115,7 +115,7 @@ var Builtins = []struct {
 			copy(newElements, arg.Elements)
 			newElements[length] = args[1]
 
-			return nil
+			return &Array{Elements: newElements}
 		},
 		},
 	},

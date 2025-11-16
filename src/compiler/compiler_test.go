@@ -335,6 +335,7 @@ func TestLetStatementScopes(t *testing.T) {
 	runCompilerTests(t, tests)
 }
 
+// TODO! This Test is Failing
 func TestBuiltins(t *testing.T) {
 	tests := []testCompilerStructs{
 		{
@@ -357,16 +358,13 @@ func TestBuiltins(t *testing.T) {
 		},
 		{
 			input: `
-			fn(){ len([]); }
+			len("");
 			`,
-			expectedConstants: []any{
-				code.Make(code.OpGetBuiltin, 0),
-				code.Make(code.OpArray, 0),
-				code.Make(code.OpCall, 1),
-				code.Make(code.OpReturnValue),
-			},
+			expectedConstants: []any{""},
 			expectedInstructions: []code.Instructions{
+				code.Make(code.OpGetBuiltin, 0),
 				code.Make(code.OpConstant, 0),
+				code.Make(code.OpCall, 1),
 				code.Make(code.OpPop),
 			},
 		},
